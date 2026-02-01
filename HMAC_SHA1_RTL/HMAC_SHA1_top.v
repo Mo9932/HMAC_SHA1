@@ -1,0 +1,153 @@
+module HMAC_SHA1_top (
+    input rst_n     ,
+    input clk       ,
+    /* from axi lite interface */
+    input [511:0] key,
+    /* axis slave interface */
+    input t_valid   ,
+    input t_last    ,
+    input [31:0] t_data,
+    output t_ready  ,
+
+    /* output authintication */
+    output wire sha_ready, // to reg file
+    output wire sha_valid, // to reg file
+    output reg auth_done,
+    output reg auth_error
+);
+
+    integer i, j;
+
+    reg [31:0] tag_pipe0[4:0];
+    reg [31:0] tag_pipe1[4:0];
+
+
+    wire sel;
+    wire valid;
+    wire [31:0] data_2_sha_stg1, out_to_sha;
+    wire [1023:0] out_2_sha_stg2;
+    wire sha_stg1_done;
+    wire [159:0] hash_out_stg1;
+    wire [159:0] hash_out_stg2;
+	 
+	 
+	 wire sha_ready_0	;
+	 wire sha_ready_1	;
+	 wire t_ready_ctrl;
+	 wire padd_start	;
+	 wire valid_to_sha;
+	 wire sah_start	;
+
+    /*================================================================================================*/
+    /*====================================       STAGE 1       =======================================*/
+    /*================================================================================================*/
+    always @(posedge clk or negedge rst_n) begin
+        if(~rst_n)begin
+            for (i = 0; i < 5; i = i+1) begin
+                tag_pipe0[i] <= 'b0;
+            end
+        end
+        else if(t_ready)begin
+            tag_pipe0[0] <= t_data;
+            for (i = 0; i < 4; i = i+1) begin
+                tag_pipe0[i+1] <= tag_pipe0[i];
+            end
+        end
+    end
+
+    ctrl_unit C0(
+        .rst_n      (rst_n     ),
+        .clk        (clk       ),
+        .sha_ready  (sha_ready_0 ),
+        .t_valid    (t_valid   ),
+        .t_last     (t_last    ),
+        .t_ready    (t_ready_ctrl ),
+        .sel        (sel       ),
+        .padd_start (padd_start),
+        .valid_to_sha(valid_to_sha)    
+    );
+
+    ipadd U0(
+        .rst_n     (rst_n     ),
+        .clk       (clk       ),
+        .key       (key       ),
+        .start     (padd_start),
+        .out_to_sha(out_to_sha)
+    );
+
+    mux2x1 M0(
+        .sel(sel            ),
+        .A  (out_to_sha     ),
+        .B  (tag_pipe0[4]   ),
+        .O  (data_2_sha_stg1)
+    );
+
+    sha_1_top SHA0(
+        .clk        (clk            ),
+        .rst_n      (rst_n          ),
+        .t_data     (data_2_sha_stg1),
+        .t_valid    (valid_to_sha   ),
+        .t_last     (t_last         ),
+        .t_ready    (sha_ready_0    ),
+        .sha_done   (sha_stg1_done  ),
+        .hash_out   (hash_out_stg1  )
+    );
+    /*================================================================================================*/
+    /*====================================       STAGE 2       =======================================*/
+    /*================================================================================================*/
+    always @(posedge clk or negedge rst_n) begin
+        if(~rst_n)begin
+            for (j = 0; j < 5; j = j+1) begin
+                tag_pipe1[j] <= 'b0;
+            end
+        end
+        else if(sha_ready_0)begin
+            for (j = 0; j < 5; j = j+1) begin
+                tag_pipe1[j] <= tag_pipe0[j];
+            end
+        end
+    end
+
+    opadd O0(
+        .rst_n     (rst_n           ),
+        .clk       (clk             ),
+        .sha_in    (hash_out_stg1   ),
+        .key       (key             ),
+        .start     (sha_stg1_done   ),
+        .out_to_sha(out_2_sha_stg2  ),
+        .sah_start (sah_start       )
+    );
+
+    SHA1_opt_stage2 SHA1(
+        .clk        (clk                ),
+        .rst_n      (rst_n              ),
+        .data_in    (out_2_sha_stg2     ),
+        .restart    (sah_start          ), // signal to start processing a new message block : must remain high for 16 cycles
+        .valid      (valid              ),
+        .sha_ready  (sha_ready_1        ),
+        .hash_out   (hash_out_stg2      )
+    );
+
+    wire authintication_wire;
+    assign authintication_wire = ~|{hash_out_stg2[159 -: 32] ^ tag_pipe1[4],
+                                    hash_out_stg2[127 -: 32] ^ tag_pipe1[3],
+                                    hash_out_stg2[95  -: 32] ^ tag_pipe1[2],
+                                    hash_out_stg2[63  -: 32] ^ tag_pipe1[1],
+                                    hash_out_stg2[31  -: 32] ^ tag_pipe1[0]};
+    always @(posedge clk or negedge rst_n) begin
+        if(~rst_n)begin
+            auth_done   <= 'b0;
+            auth_error  <= 'b0;
+        end
+        else if(valid)begin
+            auth_done  <= authintication_wire;
+            auth_error <= ~authintication_wire;
+        end
+        else begin
+            auth_done   <= 'b0;
+            auth_error  <= 'b0;
+        end
+    end
+
+    assign t_ready = t_ready_ctrl & sha_ready_0;
+endmodule
