@@ -1,3 +1,23 @@
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: Mohamed Emam Hossein
+// 
+// Create Date: 25.01.2026 18:44:51
+// Design Name: 
+// Module Name: ctrl_unit
+// Project Name: AI accelerator with secured fifo chain
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+
 module ctrl_unit (
     input rst_n     ,
     input clk       ,
@@ -34,7 +54,7 @@ module ctrl_unit (
             inner_padd_counter <= 0;
         end 
         else if(counter_en)begin
-            inner_padd_counter <= inner_padd_counter + 'b1;
+            inner_padd_counter <= inner_padd_counter + 4'b1;
         end
     end
 

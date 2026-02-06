@@ -1,3 +1,22 @@
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: Mohamed Emam Hossein
+// 
+// Create Date: 25.01.2026 18:44:51
+// Design Name: 
+// Module Name: input_padder
+// Project Name: AI accelerator with secured fifo chain
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
 module ipadd (
     input rst_n     ,
     input clk       ,

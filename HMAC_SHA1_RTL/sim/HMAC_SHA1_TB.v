@@ -134,9 +134,9 @@ module HMAC_SHA_tb;
         S_AXI_ARESETN = 1;
         s_axis_aresetn = 1;
 
-        // Write CRC_EQ value to DUT
-        axi_lite_write(6'd0, 32'h61000000); // Example CRC_EQ value
-        axi_lite_write(6'h4, 32'h61000000); // Example CRC_EQ value
+        // hash key setup
+        axi_lite_write(6'd0, 32'h61000000); 
+        axi_lite_write(6'h4, 32'h61000000); 
 
 
         input_vec = 'b0;

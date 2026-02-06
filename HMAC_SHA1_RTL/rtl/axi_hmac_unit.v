@@ -1,12 +1,12 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
-// Engineer: 
+// Engineer: Mohamed Emam Hossein
 // 
 // Create Date: 25.01.2026 18:44:51
 // Design Name: 
 // Module Name: axi_hmac_unit
-// Project Name: 
+// Project Name: AI accelerator with secured fifo chain
 // Target Devices: 
 // Tool Versions: 
 // Description: 

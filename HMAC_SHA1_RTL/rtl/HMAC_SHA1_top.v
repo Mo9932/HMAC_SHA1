@@ -1,3 +1,23 @@
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: Mohamed Emam Hossein
+// 
+// Create Date: 25.01.2026 18:44:51
+// Design Name: 
+// Module Name: HMAC_SHA1_top
+// Project Name: AI accelerator with secured fifo chain
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+
 module HMAC_SHA1_top (
     input rst_n     ,
     input clk       ,
@@ -25,22 +45,32 @@ module HMAC_SHA1_top (
     wire sel;
     wire valid;
     wire [31:0] data_2_sha_stg1, out_to_sha;
-    wire [1023:0] out_2_sha_stg2;
+    wire [511:0] out_2_sha_stg2;
     wire sha_stg1_done;
     wire [159:0] hash_out_stg1;
     wire [159:0] hash_out_stg2;
+	 
+	 
+	 wire sha_ready_0	;
+	 wire sha_ready_1	;
+	 wire t_ready_ctrl  ;
+	 wire padd_start	;
+	 wire valid_to_sha  ;
+	 wire sah_start	    ;
+	 wire sah_restart	;
+
     /*================================================================================================*/
     /*====================================       STAGE 1       =======================================*/
     /*================================================================================================*/
     always @(posedge clk or negedge rst_n) begin
         if(~rst_n)begin
-            for (i = 0; i < 6; i = i+1) begin
+            for (i = 0; i < 5; i = i+1) begin
                 tag_pipe0[i] <= 'b0;
             end
         end
         else if(t_ready)begin
             tag_pipe0[0] <= t_data;
-            for (i = 0; i < 5; i = i+1) begin
+            for (i = 0; i < 4; i = i+1) begin
                 tag_pipe0[i+1] <= tag_pipe0[i];
             end
         end
@@ -102,18 +132,22 @@ module HMAC_SHA1_top (
     opadd O0(
         .rst_n     (rst_n           ),
         .clk       (clk             ),
+        .t_valid    (t_valid        ),
+        .t_ready    (t_ready        ),
         .sha_in    (hash_out_stg1   ),
         .key       (key             ),
         .start     (sha_stg1_done   ),
         .out_to_sha(out_2_sha_stg2  ),
-        .sah_start (sah_start       )
+        .sah_start (sah_start       ),
+        .sah_restart (sah_restart       )
     );
 
     SHA1_opt_stage2 SHA1(
         .clk        (clk                ),
         .rst_n      (rst_n              ),
         .data_in    (out_2_sha_stg2     ),
-        .restart    (sah_start          ), // signal to start processing a new message block : must remain high for 16 cycles
+        .start      (sah_start          ), // signal to start processing a new message block : must remain high for 16 cycles
+        .restart    (sah_restart        ), // signal to start processing a new message block : must remain high for 16 cycles
         .valid      (valid              ),
         .sha_ready  (sha_ready_1        ),
         .hash_out   (hash_out_stg2      )
